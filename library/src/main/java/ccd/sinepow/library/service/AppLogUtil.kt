@@ -21,12 +21,6 @@ object AppLogUtil {
 
     var isDeBug = false
 
-    var allowD = isDeBug
-    var allowE = isDeBug
-    var allowI = isDeBug
-    var allowV = isDeBug
-    var allowW = isDeBug
-    var allowWtf = isDeBug
 
     private fun generateTag(caller: StackTraceElement): String {
         var tag = "%s.%s(L:%d)"
@@ -69,7 +63,7 @@ object AppLogUtil {
     }
 
     fun d(content: String?) {
-        if (!allowD) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -81,7 +75,7 @@ object AppLogUtil {
 
 
     fun d(tag: String?, content: String?) {
-        if (!allowD) return
+        if (!isDeBug) return
         if (customLogger != null) {
             customLogger!!.d(tag, content)
         } else {
@@ -95,7 +89,7 @@ object AppLogUtil {
     }
 
     fun d(content: String?, tr: Throwable?) {
-        if (!allowD) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -106,7 +100,7 @@ object AppLogUtil {
     }
 
     fun e(content: String?) {
-        if (!allowE) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -117,7 +111,7 @@ object AppLogUtil {
     }
 
     fun e(e: Exception) {
-        if (!allowE) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -128,7 +122,7 @@ object AppLogUtil {
     }
 
     fun e(content: String?, tr: Throwable?) {
-        if (!allowE) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -139,7 +133,7 @@ object AppLogUtil {
     }
 
     fun i(content: String?) {
-        if (!allowI) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -150,7 +144,7 @@ object AppLogUtil {
     }
 
     fun i(content: String?, tr: Throwable?) {
-        if (!allowI) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -161,7 +155,7 @@ object AppLogUtil {
     }
 
     fun v(content: String?) {
-        if (!allowV) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -172,7 +166,7 @@ object AppLogUtil {
     }
 
     fun v(content: String?, tr: Throwable?) {
-        if (!allowV) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -183,7 +177,7 @@ object AppLogUtil {
     }
 
     fun w(content: String?) {
-        if (!allowW) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -194,7 +188,7 @@ object AppLogUtil {
     }
 
     fun w(content: String?, tr: Throwable?) {
-        if (!allowW) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -205,7 +199,7 @@ object AppLogUtil {
     }
 
     fun w(tr: Throwable?) {
-        if (!allowW) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -217,7 +211,7 @@ object AppLogUtil {
 
 
     fun wtf(content: String?) {
-        if (!allowWtf) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -228,7 +222,7 @@ object AppLogUtil {
     }
 
     fun wtf(content: String?, tr: Throwable?) {
-        if (!allowWtf) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
@@ -239,7 +233,7 @@ object AppLogUtil {
     }
 
     fun wtf(tr: Throwable?) {
-        if (!allowWtf) return
+        if (!isDeBug) return
         val caller = getCallerStackTraceElement()
         val tag = generateTag(caller)
         if (customLogger != null) {
