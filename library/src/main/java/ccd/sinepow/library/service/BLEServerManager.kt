@@ -271,9 +271,7 @@ class BLEServerManager(private val context: Context) {
         fun setDebug(boolean: Boolean){
             bleServerManager?.let {
                 it.bleservice?.let { blebind ->
-                    val bleConfig = BLEConfig()
-                    bleConfig.isDebug =boolean
-                    blebind.setConfig(bleConfig)
+                 blebind.setDebug(boolean)
                     return
                 }
                 AppLogUtil.e("蓝牙未初始化,自动重新构建")

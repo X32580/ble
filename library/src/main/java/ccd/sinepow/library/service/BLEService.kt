@@ -684,6 +684,10 @@ class BLEService : Service() {
             }
         }
 
+        override fun setDebug(boolean: Boolean) {
+            isDebug = boolean
+        }
+
         override fun setConfig(config: BLEConfig) {
             this@BLEService.BLE_SPP_Notify_Characteristic = config.BLE_SPP_Notify_Characteristic
             this@BLEService.BLE_SPP_Service = config.BLE_SPP_Service
@@ -720,6 +724,9 @@ class BLEService : Service() {
 
         //设置 接口回调
         fun setCallback(callback: BLECallBack)
+
+        //设置debug 模式
+        fun setDebug(boolean: Boolean)
 
         //设置蓝牙配置文件
         fun setConfig(config: BLEConfig)
