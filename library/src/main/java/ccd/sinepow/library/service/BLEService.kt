@@ -3,6 +3,8 @@ package ccd.sinepow.library.service
 import android.app.Service
 import android.bluetooth.*
 import android.bluetooth.BluetoothDevice.TRANSPORT_LE
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
 import android.net.wifi.WifiManager
@@ -514,6 +516,8 @@ class BLEService : Service() {
     }
 
 
+
+
     fun writeDevice(context: String, address: String) {
 
 
@@ -587,6 +591,57 @@ class BLEService : Service() {
         }
 
         log("需写入数据的设备未连接，写入$context 失败")
+
+    }
+
+
+
+    private var isSearch = false
+
+    fun search(callback: BLEScannerCallback){
+
+        if (isSearch){
+            AppLogUtil.e("扫描中 无法继续扫描")
+            return
+        }
+
+        if (!bluetoothAdapter.isEnabled){
+            AppLogUtil.e("未开启蓝牙")
+            bluetoothAdapter.enable()
+            return
+        }
+
+        isSearch = true
+
+        val scanCallback = object :ScanCallback(){
+
+            override fun onScanFailed(errorCode: Int) {
+                super.onScanFailed(errorCode)
+                callback.error(errorCode)
+            }
+
+            override fun onScanResult(callbackType: Int, result: ScanResult?) {
+                super.onScanResult(callbackType, result)
+
+                AppLogUtil.e("扫描到设备$result")
+
+                if (result!=null){
+                    callback.findDevice(result.device)
+                }
+
+            }
+
+
+        }
+
+            bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
+
+            Thread.sleep(6000)
+
+            bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
+
+            isSearch  = false
+
 
     }
 
@@ -698,6 +753,10 @@ class BLEService : Service() {
             this@BLEService.connectInterval = config.intervalTime
         }
 
+        override fun searchDevice(callback: BLEScannerCallback) {
+            search(callback)
+        }
+
     }
 
     //对外暴露的接口
@@ -730,6 +789,9 @@ class BLEService : Service() {
 
         //设置蓝牙配置文件
         fun setConfig(config: BLEConfig)
+
+        //搜索设备
+        fun searchDevice(callback: BLEScannerCallback)
 
     }
 

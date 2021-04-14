@@ -1,9 +1,18 @@
 package ccd.sinepow.library.service
 
+import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.*
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import kotlin.math.acos
 
 /**
  * 作者 :  叶鹏
@@ -282,6 +291,94 @@ class BLEServerManager(private val context: Context) {
         fun initBleServer(context: Context) {
             if (bleServerManager ==null)
             bleServerManager = BLEServerManager(context)
+        }
+
+        /**
+         * 扫描设备
+         */
+        fun search(callback: BLEScannerCallback,activity: Activity){
+
+            bleServerManager?.let {
+                it.bleservice?.let { blebind ->
+
+                   requestBluetoothPermission(activity)
+
+                    if (isLocServiceEnable(it.context)){
+
+                        blebind.searchDevice(callback)
+
+                    }else{
+                        Toast.makeText(
+                            activity, "请开启定位后搜索",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    return
+                }
+                AppLogUtil.e("蓝牙未初始化,自动重新构建")
+                it.onResumeInit()
+            }
+
+
+        }
+
+        /**
+         * 申请权限
+         */
+        private fun requestBluetoothPermission(activity: Activity) {
+            //判断系统版本
+
+            if (Build.VERSION.SDK_INT >= 23) {
+                //检测当前app是否拥有某个权限
+                val checkCallPhonePermission = ContextCompat.checkSelfPermission(
+                    activity,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+                //判断这个权限是否已经授权过
+                if (checkCallPhonePermission != PackageManager.PERMISSION_GRANTED) {
+                    //判断是否需要 向用户解释，为什么要申请该权限
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(
+                            activity,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                        Toast.makeText(
+                            activity, "请授予权限",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    ActivityCompat.requestPermissions(
+                        activity,
+                        arrayOf(
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ),
+                        1
+                    )
+                    return
+                } else {
+
+                }
+            } else {
+            }
+        }
+
+        /**
+         * 手机是否开启位置服务，如果没有开启那么所有app将不能使用定位功能
+         */
+        private fun isLocServiceEnable(context: Context): Boolean {
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+            /**
+             * 安卓 9 以后才有的方法
+             */
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return locationManager.isLocationEnabled
+            }
+
+            val gps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            val network = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            return gps || network
         }
 
     }
