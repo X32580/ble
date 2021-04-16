@@ -3,7 +3,7 @@ package ccd.sinepow.ble
 import android.bluetooth.BluetoothDevice
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import ccd.sinepow.library.service.AppLogUtil
+import tools.AppLogUtil
 import ccd.sinepow.library.service.BLEScannerCallback
 import ccd.sinepow.library.service.BLEServerManager
 import kotlinx.android.synthetic.main.activity_main.*

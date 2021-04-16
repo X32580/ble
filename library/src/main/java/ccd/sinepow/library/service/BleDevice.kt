@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothGatt
 import android.os.Handler
 import android.os.Looper
 import ccd.sinepow.library.service.BleState.START_CONNECT
+import tools.AppLogUtil
 
 
 /**
@@ -22,7 +23,10 @@ class BleDevice(
 ) {
 
     lateinit var powerId: String
-  private  var stop = false
+    private var stop = false
+
+    //存放指令集合  未写入的指令将会存放在 集合内
+    val atList: MutableMap<String, String> = mutableMapOf()
 
     //开始 连接 超时计时  去你妈的CountDownTimer 需要主线程 还不如handler 好用
     fun startCountDownTimer() {
@@ -36,7 +40,7 @@ class BleDevice(
                 call.onError(bluetoothGatt.device.address, state)
 
                 //没有连接成功  因为没有找到设备
-                state =  START_CONNECT
+                state = START_CONNECT
 
                 bluetoothGatt.disconnect()
                 bluetoothGatt.close()

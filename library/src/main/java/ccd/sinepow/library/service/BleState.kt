@@ -39,6 +39,8 @@ object BleState {
     const val GATT_SERVICE_NULL = 12
     //蓝牙未打开
     const val BLUETOOTH_NOT_ON =13
+    //写入的设备未连接
+    const val WRITE_DEVICE_DIS_CONNECT = 14
     //低版本手机 蓝牙与Wi-Fi冲突错误
     const val BluetoothWifiError = 15
 

@@ -1,4 +1,4 @@
-package ccd.sinepow.library.service
+package tools
 
 import android.text.TextUtils
 import android.util.Log

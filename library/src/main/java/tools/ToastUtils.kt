@@ -1,4 +1,4 @@
-package ccd.sinepow.library.service
+package tools
 
 import android.app.Application
 import android.os.Handler
@@ -25,7 +25,7 @@ object ToastUtils {
     }
 
     fun init(application: Application){
-        this.application =application
+        ToastUtils.application =application
         handle = Handler(Looper.getMainLooper())
     }
 

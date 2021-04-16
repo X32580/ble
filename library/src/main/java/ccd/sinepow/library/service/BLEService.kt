@@ -25,6 +25,7 @@ import ccd.sinepow.library.service.BleState.STATE_DISCONNECTED
 import ccd.sinepow.library.service.BleState.STATE_DISCONNECTING
 import ccd.sinepow.library.service.BleState.WRITE_PASSAGEWAY
 import ccd.sinepow.library.service.BleState.WRITE_PASSAGEWAY_SUCCESSFUL
+import tools.AppLogUtil
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -134,6 +135,9 @@ class BLEService : Service() {
             log("写入数据:$at 目标蓝牙：${gatt!!.device.address}")
 
             //移除已写入的指令
+            deviceMap[gatt!!.device.address]?.let {
+                it.atList.remove(at)
+            }
 
         }
 
@@ -200,6 +204,12 @@ class BLEService : Service() {
                     sendMessage.execute { //延迟缓冲 不然写不进去数据
                         Thread.sleep(connectInterval)
                         bleDevice.call.connectSuccessful(bleDevice.bluetoothGatt.device.address)
+
+                        bleDevice.atList.forEach {
+                            // 将未写入的 数据写入 设备
+                            writeDevice(it.value,bleDevice.bluetoothGatt.device.address,bleDevice.powerId)
+                        }
+
                     }
 
                     sendSignal.execute {
@@ -273,7 +283,7 @@ class BLEService : Service() {
                 BluetoothGatt.STATE_DISCONNECTED -> {
 
                     deviceMap[gatt!!.device.address]?.let {
-
+                        it.state = STATE_DISCONNECTED
                         //经过测试 自动断开 还是放弃这个连接 才由用户操作重新连接更好
                         log("蓝牙断开 清除连接对象")
                         //没有找到设备的  断开
@@ -281,8 +291,6 @@ class BLEService : Service() {
                         it.stopCountTimer()// 移除定时器
                         it.bluetoothGatt.close()
                         deviceMap.remove(it.bluetoothGatt.device.address)
-
-                        it.state = STATE_DISCONNECTED
                         return
                     }
                     //如果移除 蓝牙设备断开成功以后 关闭gatt 对象 释放蓝牙占用
@@ -439,8 +447,6 @@ class BLEService : Service() {
                             device.connectGatt(this, false, bleCallBack)
                         }
 
-
-
                         deviceMap[address]?.let {
 
                             it.bluetoothGatt = gatt  // 经过 测试 断开后还是 调用新的连接方法 好用
@@ -516,9 +522,101 @@ class BLEService : Service() {
     }
 
 
+    /**
+     * 用户设备 未连接 时 记录指令 并连接设备
+     * 指令将在 连接完成后 写入改设备
+     */
+  private  fun connectDevice(address: String, powerId: String,context: String) {
+
+        log("连接的蓝牙 ： $address")
+
+        //未开启蓝牙 启动开启 回调界面未开启蓝牙
+        if (!bluetoothAdapter.isEnabled) {
+            deviceMap.clear() // 清除 连接对象
+            bluetoothAdapter.enable()
+            callBack.onError(address, BLUETOOTH_NOT_ON)
+            return
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            val wifiManager =
+                super.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            if (wifiManager.isWifiEnabled) {
+                log("你的手机蓝牙与Wi-Fi冲突，请关闭Wi-Fi后操作")
+                wifiManager.isWifiEnabled = false
+                callBack.onError(address, BluetoothWifiError)
+                return
+            }
+        }
+
+        val time = System.currentTimeMillis()
+
+        /**
+         * 连接调用间隔 不能低于限定间隔时间
+         */
+        if (time - oldTime >= connectInterval) {
 
 
-    fun writeDevice(context: String, address: String) {
+                log("开始连接设备-----> ")
+
+                val device = bluetoothAdapter.getRemoteDevice(address)
+
+                /**
+                 * 6.0以上使用ble 低功耗 模式 6.0以下自动选择 模式
+                 */
+                val gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    log("Android${Build.VERSION.SDK_INT} 使用BLE连接方式")
+                    device.connectGatt(this, false, bleCallBack, TRANSPORT_LE)
+                } else {
+                    log("Android${Build.VERSION.SDK_INT} 使用默认的物理连接方式")
+                    device.connectGatt(this, false, bleCallBack)
+                }
+
+                gatt?.let {
+                    val bleDevice = BleDevice(
+                        connectTimeOut,
+                        gatt,
+                        START_CONNECT,
+                        callBack
+                    )
+                    bleDevice.startCountDownTimer()
+                    bleDevice.powerId = powerId
+                    //添加到 连接队列
+                    deviceMap[address] = bleDevice
+                    bleDevice.atList[context] = context //添加到指令集合内
+                    return
+                }
+                callBack.onError(address, GATT_SERVICE_NULL)
+
+
+        } else {
+
+            log(" 连接调用 间隔太短 自动延时过滤 ")
+
+            //连接过于频繁 延时在操作
+            sendMessage.execute {
+
+                Thread.sleep(connectInterval)
+
+                connectDevice(address, powerId)
+
+            }
+
+
+        }
+
+        oldTime = System.currentTimeMillis()
+
+
+    }
+
+
+
+    /**
+     * 写入 指令到指定到设备
+     */
+    fun writeDevice(context: String, address: String,powerId: String) {
 
 
         // 连接存在的时候 直接写入数据 到蓝牙
@@ -527,85 +625,82 @@ class BLEService : Service() {
             if (de.state == WRITE_PASSAGEWAY_SUCCESSFUL) {
 
 
+                mWriteCharacteristic =
+                    de.bluetoothGatt.getService(UUID.fromString(BLE_SPP_Service))
+                        .getCharacteristic(UUID.fromString(BLE_SPP_Write_Characteristic))
+                //放入写入数据
 
+                /**
+                 * 大于20 需要分包 处理
+                 * 分包处理的数据 需要更快执行
+                 */
 
-                    mWriteCharacteristic =
-                        de.bluetoothGatt.getService(UUID.fromString(BLE_SPP_Service))
-                            .getCharacteristic(UUID.fromString(BLE_SPP_Write_Characteristic))
-                    //放入写入数据
+                /**
+                 * 发送
+                 */
 
-                    /**
-                     * 大于20 需要分包 处理
-                     * 分包处理的数据 需要更快执行
-                     */
+                var ats = context
 
-                    /**
-                     * 发送
-                     */
+                while (true) {
 
-                    var ats = context
+                    if (ats.length <= 20) {
 
-                    while (true) {
+                        val at = ats.substring(0, ats.length)
+                        log("写入蓝牙指令$at")
+                        mWriteCharacteristic.value = at.toByteArray()
 
-                        if (ats.length <= 20) {
+                        //写入 对象
+                        de.bluetoothGatt.writeCharacteristic(mWriteCharacteristic)
+                        //发送间隔 100ms
+                        Thread.sleep(200)
 
-                            val at = ats.substring(0, ats.length)
-                            log("写入蓝牙指令$at")
-                            mWriteCharacteristic.value = at.toByteArray()
+                        return
 
-                            //写入 对象
-                            de.bluetoothGatt.writeCharacteristic(mWriteCharacteristic)
-                            //发送间隔 100ms
-                            Thread.sleep(200)
+                    } else {
 
-                            return
+                        val at = ats.substring(0, 19)
+                        log("写入蓝牙指令$at")
+                        ats = ats.substring(19, ats.length)
+                        mWriteCharacteristic.value = at.toByteArray()
 
-                        } else {
-
-                            val at = ats.substring(0, 19)
-                            log("写入蓝牙指令$at")
-                            ats = ats.substring(19, ats.length)
-                            mWriteCharacteristic.value = at.toByteArray()
-
-                            //写入 对象
-                            de.bluetoothGatt.writeCharacteristic(mWriteCharacteristic)
-                            //发送间隔 100ms
-                            Thread.sleep(200)
-
-                        }
+                        //写入 对象
+                        de.bluetoothGatt.writeCharacteristic(mWriteCharacteristic)
+                        //发送间隔 100ms
+                        Thread.sleep(200)
 
                     }
 
+                }
 
 
+            }else{
+                //将指令 记录
+                de.atList[context] = context
+                //调用连接 设备
+                connectDevice(address, powerId)
 
-
-            } else {
-                //没有连接设备的时候 重新连接设别
-                de.bluetoothGatt.connect()
             }
-
-
             return
-
         }
 
-        log("需写入数据的设备未连接，写入$context 失败")
+        // 设备没有 在连接对象池
+
+        connectDevice(address, powerId,context)
+
 
     }
 
 
-
     private var isSearch = false
 
-    fun search(callback: BLEScannerCallback){
+    fun search(callback: BLEScannerCallback) {
 
-        if (isSearch){
+        if (isSearch) {
             AppLogUtil.e("扫描中 无法继续扫描")
             return
         }
 
-        if (!bluetoothAdapter.isEnabled){
+        if (!bluetoothAdapter.isEnabled) {
             AppLogUtil.e("未开启蓝牙")
             bluetoothAdapter.enable()
             return
@@ -613,7 +708,7 @@ class BLEService : Service() {
 
         isSearch = true
 
-        val scanCallback = object :ScanCallback(){
+        val scanCallback = object : ScanCallback() {
 
             override fun onScanFailed(errorCode: Int) {
                 super.onScanFailed(errorCode)
@@ -625,7 +720,7 @@ class BLEService : Service() {
 
                 AppLogUtil.e("扫描到设备$result")
 
-                if (result!=null){
+                if (result != null) {
                     callback.findDevice(result.device)
                 }
 
@@ -634,13 +729,13 @@ class BLEService : Service() {
 
         }
 
-            bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
+        bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
 
-            Thread.sleep(6000)
+        Thread.sleep(6000)
 
-            bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
+        bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
 
-            isSearch  = false
+        isSearch = false
 
 
     }
@@ -664,8 +759,8 @@ class BLEService : Service() {
             connectDevice(address, powerId)
         }
 
-        override fun writeData(data: String, address: String) {
-            writeDevice(data, address)
+        override fun writeData(data: String, address: String,powerId: String) {
+            writeDevice(data, address,powerId)
         }
 
         override fun disConnectRetainDevice(address: String) {
@@ -674,6 +769,7 @@ class BLEService : Service() {
             deviceMap.forEach {
                 if (it.key != address) {
                     it.value.call = defaultCall
+                    it.value.atList.clear()
                     it.value.bluetoothGatt.disconnect()
                     it.value.stopCountTimer()
                     list.add(it.key)
@@ -692,6 +788,7 @@ class BLEService : Service() {
             deviceMap[address]?.let {
                 it.call = defaultCall
                 it.bluetoothGatt.disconnect()
+                it.atList.clear()
                 it.stopCountTimer()
                 deviceMap.remove(address)
             }
@@ -705,6 +802,7 @@ class BLEService : Service() {
             //清除指定 蓝牙回调
             deviceMap.forEach {
                 it.value.call = defaultCall
+                it.value.atList.clear()
                 it.value.bluetoothGatt.disconnect()
                 it.value.stopCountTimer()
                 list.add(it.key)
@@ -726,6 +824,8 @@ class BLEService : Service() {
                 this@BLEService.callBack = defaultCall
                 deviceMap.forEach {
                     it.value.call = defaultCall
+                    it.value.atList.clear()
+
                 }
             }
         }
@@ -767,7 +867,7 @@ class BLEService : Service() {
         fun connect(address: String, powerId: String)
 
         //写入 指令到 设备
-        fun writeData(data: String, address: String)
+        fun writeData(data: String, address: String,powerId: String)
 
         // 断开所有设备  也会移除 连接池对象
         fun disConnectAll()

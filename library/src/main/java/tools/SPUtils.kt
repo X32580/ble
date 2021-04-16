@@ -1,4 +1,4 @@
-package ccd.sinepow.library.service
+package tools
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -21,17 +21,18 @@ class SPUtils (context: Context)  {
 
     companion object{
 
-         lateinit var spUtils  :SPUtils
+         lateinit var spUtils  : SPUtils
 
         /**
          * 记得初始化 sp工具类
          */
         fun initSp(context: Context){
-                  spUtils = SPUtils(context)
+                  spUtils =
+                      SPUtils(context)
 
                 }
 
-        fun getSP():SPUtils?{
+        fun getSP(): SPUtils?{
 
             return spUtils
         }

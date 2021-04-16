@@ -1,11 +1,10 @@
 package ccd.sinepow.ble
 
-import android.app.Application
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
-import ccd.sinepow.library.service.AppLogUtil
+import tools.AppLogUtil
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
