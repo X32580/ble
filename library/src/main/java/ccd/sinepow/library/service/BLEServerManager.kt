@@ -149,12 +149,12 @@ class BLEServerManager(private val context: Context) {
          * 修复 蓝牙为初始化 造成的闪退
          * 写入方法 由 本单例 执行
          */
-        fun write(content: String, address: String) {
+        fun write(content: String, address: String,powerId: String) {
 
             bleServerManager?.let {
 
                 it.bleservice?.let { blebind ->
-                    blebind.writeData(content, address)
+                    blebind.writeData(content, address,powerId)
                     return
                 }
 
