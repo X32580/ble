@@ -264,9 +264,7 @@ class BLEServerManager(private val context: Context) {
         fun setTime(time:Long){
             bleServerManager?.let {
                 it.bleservice?.let { blebind ->
-                    val bleConfig = BLEConfig()
-                    bleConfig.intervalTime =time
-                    blebind.setConfig(bleConfig)
+                    blebind.setTime(time)
                     return
                 }
                 AppLogUtil.e("蓝牙未初始化,自动重新构建")

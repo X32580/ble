@@ -857,6 +857,12 @@ class BLEService : Service() {
             search(callback)
         }
 
+        //设置连接间隔时间
+        override fun setTime(time: Long) {
+            connectInterval = time
+        }
+
+
     }
 
     //对外暴露的接口
@@ -892,6 +898,9 @@ class BLEService : Service() {
 
         //搜索设备
         fun searchDevice(callback: BLEScannerCallback)
+
+
+        fun setTime(time:Long)
 
     }
 

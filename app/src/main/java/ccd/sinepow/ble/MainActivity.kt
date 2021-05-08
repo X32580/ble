@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
                     },this)
 
-                    IMServerManager.getInstance().bleservice.send(edit_input.text.toString())
+//                    IMServerManager.getInstance().bleservice.send(edit_input.text.toString())
 
                 }.start()
 
@@ -48,11 +48,11 @@ class MainActivity : AppCompatActivity() {
 
         connect.setOnClickListener {
 
-            Thread{
-
-                IMServerManager.getInstance().bleservice.connect("192.168.0.114",7878)
-
-            }.start()
+//            Thread{
+//
+//                IMServerManager.getInstance().bleservice.connect("192.168.0.114",7878)
+//
+//            }.start()
 
         }
 
