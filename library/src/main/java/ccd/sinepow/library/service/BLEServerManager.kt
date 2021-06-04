@@ -321,6 +321,41 @@ class BLEServerManager(private val context: Context) {
 
         }
 
+
+        /**
+         * 停止扫描
+         */
+        fun stopSearch(callback: BLEScannerCallback,activity: Activity){
+
+            bleServerManager?.let {
+                it.bleservice?.let { blebind ->
+
+                   requestBluetoothPermission(activity)
+
+                    if (isLocServiceEnable(it.context)){
+
+                        blebind.stopSearchFun(callback)
+
+                    }else{
+                        Toast.makeText(
+                            activity, "请开启定位后搜索",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    return
+                }
+                AppLogUtil.e("蓝牙未初始化,自动重新构建")
+                it.onResumeInit()
+            }
+
+
+        }
+
+
+
+
+
         /**
          * 申请权限
          */

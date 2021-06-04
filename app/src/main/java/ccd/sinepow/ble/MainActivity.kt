@@ -23,7 +23,6 @@ class MainActivity : AppCompatActivity() {
 
         send_message.setOnClickListener {
 
-            if (edit_input.text.isNotEmpty()){
 
                 Thread{
 
@@ -42,17 +41,33 @@ class MainActivity : AppCompatActivity() {
 
                 }.start()
 
-            }
+
 
         }
 
         connect.setOnClickListener {
+
 
 //            Thread{
 //
 //                IMServerManager.getInstance().bleservice.connect("192.168.0.114",7878)
 //
 //            }.start()
+
+        }
+
+        text_11.setOnClickListener {
+
+            BLEServerManager.stopSearch(object : BLEScannerCallback{
+                override fun findDevice(device: BluetoothDevice) {
+                    AppLogUtil.e("发现设备$device")
+                }
+
+                override fun error(code: Int) {
+                    AppLogUtil.e("扫描出错$code")
+                }
+
+            },this)
 
         }
 

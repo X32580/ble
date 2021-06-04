@@ -693,7 +693,31 @@ class BLEService : Service() {
 
     private var isSearch = false
 
+   private val scanCallback = object : ScanCallback() {
+
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+            searchCall.error(errorCode)
+        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+            super.onScanResult(callbackType, result)
+
+            AppLogUtil.e("扫描到设备$result")
+
+            if (result != null) {
+                searchCall.findDevice(result.device)
+            }
+
+        }
+
+
+    }
+
+   lateinit var searchCall:BLEScannerCallback
     fun search(callback: BLEScannerCallback) {
+
+        searchCall = callback
 
         if (isSearch) {
             AppLogUtil.e("扫描中 无法继续扫描")
@@ -708,35 +732,28 @@ class BLEService : Service() {
 
         isSearch = true
 
-        val scanCallback = object : ScanCallback() {
-
-            override fun onScanFailed(errorCode: Int) {
-                super.onScanFailed(errorCode)
-                callback.error(errorCode)
-            }
-
-            override fun onScanResult(callbackType: Int, result: ScanResult?) {
-                super.onScanResult(callbackType, result)
-
-                AppLogUtil.e("扫描到设备$result")
-
-                if (result != null) {
-                    callback.findDevice(result.device)
-                }
-
-            }
-
-
-        }
 
         bluetoothAdapter.bluetoothLeScanner.startScan(scanCallback)
 
         Thread.sleep(6000)
 
-        bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
+        if (isSearch)
+            bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
 
         isSearch = false
 
+    }
+
+
+    /**
+     *  停止 搜索 立刻停止
+     */
+    fun stopSearch(){
+
+        if (isSearch){
+            isSearch = false
+            bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
+        }
 
     }
 
@@ -757,6 +774,10 @@ class BLEService : Service() {
 
         override fun connect(address: String, powerId: String) {
             connectDevice(address, powerId)
+        }
+
+        override fun stopSearchFun(callback: BLEScannerCallback) {
+            stopSearch()
         }
 
         override fun writeData(data: String, address: String,powerId: String) {
@@ -871,6 +892,8 @@ class BLEService : Service() {
         fun isConnect(address: String): Boolean
 
         fun connect(address: String, powerId: String)
+
+        fun stopSearchFun(callback: BLEScannerCallback)
 
         //写入 指令到 设备
         fun writeData(data: String, address: String,powerId: String)
