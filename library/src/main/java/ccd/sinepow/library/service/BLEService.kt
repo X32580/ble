@@ -104,7 +104,7 @@ class BLEService : Service() {
         }
 
         override fun onResult(device: BleDevice, result: String) {
-            log("默认回调获取到蓝牙数据：$result")
+            log("默认回调获取到蓝牙数据：${result}")
         }
 
         override fun onError(address: String, code: Int) {
@@ -112,6 +112,9 @@ class BLEService : Service() {
         }
 
     }
+
+
+    var resultE:String? = null  //用于
 
     /**
      * 蓝牙 gatt 回调 所有连接对象都可以使用 这一个 用不同的 蓝牙地址区分设备
@@ -212,16 +215,16 @@ class BLEService : Service() {
 
                     }
 
-                    sendSignal.execute {
-
-                        while (bleDevice.state == WRITE_PASSAGEWAY_SUCCESSFUL) {
-                            Thread.sleep(2000) //过两秒获取一次 已连接的蓝牙设备
-                            deviceMap.forEach { ble ->
-                                ble.value.bluetoothGatt.readRemoteRssi()
-                            }
-                        }
-
-                    }
+//                    sendSignal.execute {
+//
+//                        while (bleDevice.state == WRITE_PASSAGEWAY_SUCCESSFUL) {
+//                            Thread.sleep(2000) //过两秒获取一次 已连接的蓝牙设备
+//                            deviceMap.forEach { ble ->
+//                                ble.value.bluetoothGatt.readRemoteRssi()
+//                            }
+//                        }
+//
+//                    }
 
 
                 }
@@ -236,30 +239,31 @@ class BLEService : Service() {
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic?
         ) {
-
             sendMessage.execute {
-
-
                 characteristic?.let { it1 ->
-
                     if (it1.value.isNotEmpty()) {
-
                         deviceMap[gatt!!.device.address]?.let {
-                            it.call.onResult(
-                                it,
-                                String(it1.value).replace("\n", "").replace("/", "")
-                            )
+                            val sp = String(it1.value).split("\n")
+                            sp.forEach { result->
+                                if (result.isNotEmpty()){
+                                    if (result.length<=2){ //视为无效数据
+                                        if (resultE!=null){
+                                            resultE += result
+                                            it.call.onResult(it, resultE!!.replace("/",""))
+                                            resultE=null
+                                        }
+                                        else
+                                            resultE = result
+
+                                    }else{
+                                        it.call.onResult(it,result.replace("/",""))
+                                    }
+                                }
+                            }
                         }
-
-
                     }
-
-
                 }
-
-
             }
-
         }
 
 
@@ -274,7 +278,7 @@ class BLEService : Service() {
                     deviceMap[gatt!!.device.address]?.let {
                         it.state = STATE_CONNECTED
                     }
-                    gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                    gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
                     //此时 需要调用发现服务
                     gatt.discoverServices()
 
@@ -421,9 +425,6 @@ class BLEService : Service() {
                             log("Android${Build.VERSION.SDK_INT} 使用默认的物理连接方式")
                             device.connectGatt(this, false, bleCallBack)
                         }
-
-
-
                         deviceMap[address]?.let {
 
                             it.bluetoothGatt = gatt  // 经过 测试 断开后还是 调用新的连接方法 好用
@@ -448,10 +449,8 @@ class BLEService : Service() {
                         }
 
                         deviceMap[address]?.let {
-
                             it.bluetoothGatt = gatt  // 经过 测试 断开后还是 调用新的连接方法 好用
                             bleDevice.startCountDownTimer()
-
                         }
                     }
 
@@ -506,11 +505,8 @@ class BLEService : Service() {
 
             //连接过于频繁 延时在操作
             sendMessage.execute {
-
                 Thread.sleep(connectInterval)
-
                 connectDevice(address, powerId)
-
             }
 
 

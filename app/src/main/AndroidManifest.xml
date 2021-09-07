@@ -25,6 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".ExchangeTestActivity" />
         <service android:name=".SocketService" />
         <service android:name="ccd.sinepow.library.service.BLEService" />
     </application>
